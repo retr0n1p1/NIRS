@@ -1,2 +1,2 @@
 # NIRS
-# rawtoroot translating raw text data file to root tree
+rawtoroot: translating raw text data file to root tree
