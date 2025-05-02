@@ -65,8 +65,12 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
 	TTree* t = new TTree("DATA", "DATA");
 	size_t LineCounter = 0;
 
-	char date[11];
-	char time[9];
+	string parseD = "";
+	string parseT = "";
+	TDatime DT;
+	Int_t TS;
+	Int_t nint;
+	Int_t nfirst;
 	vector<int> bufer1;
 	vector<int> bufer2;
 	vector<int> bufer3;
@@ -78,8 +82,10 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
         vector<int> row;
         row.reserve(40000);   
 
-	t->Branch("Date", date, "date/C");	
-	t->Branch("Time", time, "time/C");	
+	t->Branch("TimeUt", &DT);
+	t->Branch("timescale", &TS);
+	t->Branch("nint", &nint);
+	t->Branch("nfirst", &nfirst);
 	t->Branch("Channel1", &bufer1);
 	t->Branch("Channel2", &bufer2);
 	t->Branch("Channel3", &bufer3);
@@ -101,8 +107,22 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
         if (line.empty() || !looksLikeDate(line))
         	continue;                                  
 	
-	for(size_t i = 0; i<11; i++) date[i] = line[i];
-	for(size_t i = 11; i<19; i++) time[i-11] = line[i];
+	for(size_t i = 0; i<4; i++) parseD = parseD+line[i];
+	for(size_t i = 5; i<7; i++) parseD = parseD+line[i];
+	for(size_t i = 8; i<10; i++) parseD = parseD+line[i];
+	for(size_t i = 11; i<13; i++) parseT = parseT+line[i];
+	for(size_t i = 14; i<16; i++) parseT = parseT+line[i];
+	for(size_t i = 17; i<19; i++) parseT = parseT+line[i];
+	
+	string subb = line.substr(19, 39);
+	istringstream(subb)>>TS>>nint>>nfirst;
+
+	int date = stoi(parseD);
+	int time = stoi(parseT);
+	DT.Set(date, time);
+	
+	parseD.clear();
+	parseT.clear();
 
         size_t br = line.find('{');
         if (br == string::npos) continue;         
