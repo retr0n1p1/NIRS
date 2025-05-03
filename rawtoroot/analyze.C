@@ -36,7 +36,7 @@ inline bool looksLikeDate(const string& s)
            	isdigit(s[8]) && isdigit(s[9]);
 }
 
-void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = false)
+void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = false, int nint = 0)
 {	
 	size_t lines = 0;
    	
@@ -69,7 +69,7 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
 	string parseT = "";
 	TDatime DT;
 	Int_t TS;
-	Int_t nint;
+	Int_t nintt;
 	Int_t nfirst;
 	vector<int> bufer1;
 	vector<int> bufer2;
@@ -84,7 +84,7 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
 
 	t->Branch("TimeUt", &DT);
 	t->Branch("timescale", &TS);
-	t->Branch("nint", &nint);
+	t->Branch("nint", &nintt);
 	t->Branch("nfirst", &nfirst);
 	t->Branch("Channel1", &bufer1);
 	t->Branch("Channel2", &bufer2);
@@ -115,7 +115,7 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
 	for(size_t i = 17; i<19; i++) parseT = parseT+line[i];
 	
 	string subb = line.substr(19, 39);
-	istringstream(subb)>>TS>>nint>>nfirst;
+	istringstream(subb)>>TS>>nintt>>nfirst;
 
 	int date = stoi(parseD);
 	int time = stoi(parseT);
@@ -158,17 +158,31 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
 	bufer8.clear();
 
      	if(row.size() != 0){
-		int ch = row.size() / 8;
-		for(int i = 0; i<ch; i++) bufer1.push_back(row[i]);
-		for(int i = ch; i<2*ch; i++) bufer2.push_back(row[i]);
-		for(int i = 2*ch; i<3*ch; i++) bufer3.push_back(row[i]);
-		for(int i = 3*ch; i<4*ch; i++) bufer4.push_back(row[i]);
-		for(int i = 4*ch; i<5*ch; i++) bufer5.push_back(row[i]);
-		for(int i = 5*ch; i<6*ch; i++) bufer6.push_back(row[i]);
-		for(int i = 6*ch; i<7*ch; i++) bufer7.push_back(row[i]);
-		for(int i = 7*ch; i<row.size(); i++) bufer8.push_back(row[i]);
-        	LineCounter++;
-		t->Fill();
+		if(nint == 0){
+			int ch = row.size() / 8;
+			for(int i = 0; i<ch; i++) bufer1.push_back(row[i]);
+			for(int i = ch; i<2*ch; i++) bufer2.push_back(row[i]);
+			for(int i = 2*ch; i<3*ch; i++) bufer3.push_back(row[i]);
+			for(int i = 3*ch; i<4*ch; i++) bufer4.push_back(row[i]);
+			for(int i = 4*ch; i<5*ch; i++) bufer5.push_back(row[i]);
+			for(int i = 5*ch; i<6*ch; i++) bufer6.push_back(row[i]);
+			for(int i = 6*ch; i<7*ch; i++) bufer7.push_back(row[i]);
+			for(int i = 7*ch; i<row.size(); i++) bufer8.push_back(row[i]);
+        		LineCounter++;
+			t->Fill();
+		}
+		else if(row.size() == nint*8){
+			for(int i = 0; i<nint; i++) bufer1.push_back(row[i]);
+			for(int i = nint; i<2*nint; i++) bufer2.push_back(row[i]);
+			for(int i = 2*nint; i<3*nint; i++) bufer3.push_back(row[i]);
+			for(int i = 3*nint; i<4*nint; i++) bufer4.push_back(row[i]);
+			for(int i = 4*nint; i<5*nint; i++) bufer5.push_back(row[i]);
+			for(int i = 5*nint; i<6*nint; i++) bufer6.push_back(row[i]);
+			for(int i = 6*nint; i<7*nint; i++) bufer7.push_back(row[i]);
+			for(int i = 7*nint; i<row.size(); i++) bufer8.push_back(row[i]);
+        		LineCounter++;
+			t->Fill();
+		}
 	}
 	if(entries!=0){
 		if(!quiet){
