@@ -40,7 +40,6 @@ if [[ -z "$DATAFILE" ]]; then
   exit 1
 fi
 
-NEWNAME="${DATAFILE::-4}"
 
 # Подготовка аргументов для ROOT-скрипта
 if [[ -z "$EVENT" ]]; then
@@ -50,9 +49,20 @@ fi
 if [[ -z "$NUMBER" ]]; then
   NUMBER=0
 fi
-
-ARGS="\"${DATAFILE}\", ${EVENT}, ${QUIET}, ${NUMBER}"
-
-# Запуск ROOT
-root -l -b -q "${ROOTMACRO}(${ARGS})"
-
+if [[ "$NUMBER" == "0" ]]; then
+	echo "Searching for different nint..."
+	./count_numbers "${DATAFILE}" | while IFS=' ' read -r nint ent; do
+		echo ""
+		echo "nint: $nint, entries: $ent"
+		if [[ "$EVENT" == 0 ]]; then
+			ARGS="\"${DATAFILE}\", $ent, ${QUIET}, $nint"
+			root -l -b -q "${ROOTMACRO}(${ARGS})"
+		else
+			ARGS="\"${DATAFILE}\", ${EVENT}, ${QUIET}, $nint"
+			root -l -b -q "${ROOTMACRO}(${ARGS})"
+		fi
+	done
+else
+	ARGS="\"${DATAFILE}\", ${EVENT}, ${QUIET}, ${NUMBER}"
+	root -l -b -q "${ROOTMACRO}(${ARGS})"
+fi

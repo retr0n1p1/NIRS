@@ -59,7 +59,8 @@ void analyze(const char *fname = "sample.dat", int entries = 0, bool quiet = fal
 
         if (filename.length() >= 4) 
     	    filename.erase(filename.length() - 4);
-	filename = filename + ".root";
+	if(nint == 0) filename = filename + ".root";
+	else filename = filename+"_nint_"+to_string(nint)+".root";
 
 	TFile* f = new TFile(filename.c_str(), "RECREATE");
 	TTree* t = new TTree("DATA", "DATA");
