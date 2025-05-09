@@ -3,7 +3,7 @@ using namespace std;
 
 #define pltCh 1 // сколько графиков строить в функции плот
 #define N 10 // число устреднененных значений с каждой стороны от текущей ячейки при фильтрации
-#define level 10 // уровень среза шумов в процентах
+#define histsrc 1 // канал по которому будет строится гистограмма
 
 //ROOT::EnableImplicitMT(6); // Using all cpu cores
 //gROOT->SetBatch(kTRUE);
@@ -22,45 +22,53 @@ void show_progress(int current, int total) { //progress-bar
         cout.flush();
 }
 
-void spectre(const array<vector<int>, 8> &der, vector<int> &buffer, const int &nint, int ch){
-bool flag = 0, rec = 0;
-vector<int> tempo;
-for(int j = 0; j<nint; j++){
-	if((der[ch-1][j] != 0) && (rec == 0)) rec = 1;
-	if(((rec == 1) && (der[ch-1][j] == 0)) || (j==nint-1)){
-		rec = 0;
-		flag = 1;
+void spectre(const array<vector<int>, 8> &der, vector<int> &buffer, const int &nint, int ch) {
+int peak = *max_element(der[ch-1].begin(), der[ch-1].end());
+if(peak == 0) return;
+int count_peaks = 0;
+for(auto& i : der[ch-1]) {
+	if(i==peak) {
+		count_peaks++;
+		buffer.push_back(i);
 	}
-	if(rec) tempo.push_back(der[ch-1][j]);
-	if(flag){
-		if(tempo.size()>0){
-			int max = *max_element(tempo.begin(), tempo.end());
-			buffer.push_back(max);
-		}
-		flag = 0;
-		tempo.clear();
-	}
-
+if(count_peaks > 1) {
+	buffer.pop_back();
+	return;
 }
 }
+}
+  
 
 void trim(array<vector<int>, 8> &der, const int &nint){
-	for(int i = 0; i<8; i++){
-		int mean = 0;
-		for(int j = 0; j<nint; j++) mean = der[i][j]+mean;
-		mean = mean / nint;
-		for(int j = 0; j<nint; j++){
-		       	der[i][j] = der[i][j] - mean;
-			if(der[i][j] < 0) der[i][j] = 0;
-		}
-		int max = *max_element(der[i].begin(), der[i].end());
-		mean = round((float)max*level*0.01);
-		for(int j = 0; j<nint; j++){
-		       	der[i][j] = der[i][j] - mean;
-			if(der[i][j] < 0) der[i][j] = 0;
-		}
+for(int i = 0; i<8; i++){
+	int mean = 0;
+	for(int j = 0; j<nint; j++) mean = der[i][j] + mean;
+	mean = round((float)mean / nint);
+
+	for(int j = 0; j<nint; j++){
+		der[i][j] = der[i][j] - mean;
+		if(der[i][j] < 0) der[i][j] = 0;
 	}
+    
+	int max1 = 0, max2 = 0;
+	for(auto j : der[i]){
+		if(j>=max1) max1=j;
+		else if(j<max1 and j>=max2) max2=j;
+	}
+
+	int count_peaks = 0;
+
+	for(int j = 0; j<nint; j++){
+		if(der[i][j] < 0) der[i][j] = 0;
+		if(der[i][j]==max1 or der[i][j]==max2) count_peaks++;
+	}
+    
+	if(count_peaks>2){
+		for(auto& j : der[i]) j=0;
+    	}
 }
+}
+
 
 void filter(array<vector<int>, 8> &der,const array<vector<int>*, 8> &ch, const int &nint){
 for(int k = 0; k<8; k++){
@@ -96,6 +104,11 @@ delete c;
 
 
 void analyze(const char *fname = "sample.dat"){
+string filename = fname;
+
+if (filename.length() >= 5)
+	filename.erase(filename.length() - 5);
+
 TFile* f = TFile::Open(fname);
 if(!f || f->IsZombie()){
 	cerr<<"Failed to open file" << endl;
@@ -137,24 +150,24 @@ for(int i = 0; i<entry; i++){
 	array<vector<int>, 8> der;
 	filter(der, ch, nint);
 	trim(der, nint);
-	bool bad = 0;
-	spectre(der, buffer, nint, 1);
+	spectre(der, buffer, nint, histsrc);
+	//plot(der, X, i, nint);
 }
 
 TCanvas *c = new TCanvas("c", "8 Graphs", 1920, 1080);  
 
 int maxi = 1+*max_element(buffer.begin(), buffer.end());
 int mini = -1+*min_element(buffer.begin(), buffer.end());
-int bins = ceil(2 * cbrt(buffer.size()));  
 
 TH1F* h = new TH1F("hist_100_bin", "", 100, mini, maxi);
 
 for(int i = 0; i<buffer.size(); i++) h->Fill(buffer[i]);
+h->Write();
 h->Draw();
-TH1F* h_re = (TH1F*) h->Rebin(5, "h_rebinned");  // уменьшает число биннов в 2 раза
-h_re->Draw();	
+//TH1F* h_re = (TH1F*) h->Rebin(5, "h_rebinned");  // уменьшает число биннов в 2 раза
+//h_re->Draw();	
 
-string name = "hist_20_bin.png";
+string name = filename+"_hist_ch"+to_string(histsrc)+".png";
 c->SaveAs(name.c_str());
 delete c;
 
